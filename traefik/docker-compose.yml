@@ -1,0 +1,41 @@
+version: '3.8'
+
+networks:
+  proxy:
+    external: true
+
+services:
+  traefik:
+    image: traefik
+    container_name: njord-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file:
+      - ./.env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./configs:/etc/traefik
+      - ${LOG_PATH}/${DEVICE}:/logs
+      - ./ssl:/ssl
+    networks:
+      - traefik-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-net"
+      - "traefik.http.routers.traefik.rule=Host(`${SERVICE}.${DEVICE}.${URL}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.tls.options=default"
+      - "traefik.http.routers.traefik.service=traefik"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+      - "traefik.http.services.traefik.loadbalancer.server.scheme=http"
+      - "traefik.http.services.traefik.loadbalancer.passHostHeader=true"
+      - "traefik.frontend.headers.STSSeconds=63072000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"

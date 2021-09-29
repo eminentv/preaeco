@@ -1,0 +1,51 @@
+version: '3.8'
+networks:
+  backend:
+    external: true
+  proxy:
+    external: true
+volumes:
+  ESDATA:
+  ESLOGS:
+
+services:
+  elasticsearch:
+    image: elasticsearch:${ES_VERSION}
+    container_name: elasticsearch
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - ESDATA:/usr/share/elasticsearch/data
+      - ESLOGS:/usr/share/elasticsearch/logs
+  
+  cortex:
+    image: thehiveproject/cortex:${CORTEX_VERSION}
+    container_name: cortex
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    volumes:
+      - ./cortex/application.conf:/etc/cortex/application.conf
+    depends_on:
+      - elasticsearch
+    ports:
+      - 9001:9001
+  
+  thehive:
+    image: thehiveproject/thehive4:latest
+    container_name: thehive
+    restart: unless-stopped
+    ports:
+      - 9000:9000
+    volumes:
+      - ./hive/application.conf:/etc/thehive/application.conf
+      - HIVEDB:/opt/thp/thehive/db
+      - HIVEINDEX:/opt/thp/thehive/index
+      - HIVEDATA:/opt/thp/thehive/data
+    command: '--no-config --no-config-secret'
+    
